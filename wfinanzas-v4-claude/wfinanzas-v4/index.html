@@ -417,18 +417,19 @@ function yv(val) { // Yahoo: ya en decimal, solo null-check
 }
 
 // C1 — PER TTM ajustado sector
-// Yahoo summaryDetail.trailingPE / Finnhub peBasicExclExtraTTM
 function c1(d, sector) {
-  // FMP ratios-ttm → priceEarningsRatioTTM
   const per = safe(d.frat?.priceEarningsRatioTTM)
            ?? safe(d.metrics?.peBasicExclExtraTTM)
            ?? safe(d.metrics?.peExclExtraTTM)
-           ?? safe(d.metrics?.peNormalizedAnnual);
+           ?? safe(d.metrics?.peNormalizedAnnual)
+           ?? safe(d.quote?.pe)
+           ?? safe(d._claude?.per);
   if (per===null||isNaN(per)) return { score:0.5, val:'N/D', label:'PER (TTM)' };
   if (per<=0) return { score:0.5, val:fmtX(per)+' (neg.)', label:'PER (TTM)' };
   const th = SECTOR_PER[sector];
   const score = per<=th?1:per<=th*1.3?0.5:0;
-  return { score, val:fmtX(per)+` (umbral ${th}x)`, label:'PER (TTM)' };
+  const tag = d._claude?.per && !safe(d.frat?.priceEarningsRatioTTM) && !safe(d.metrics?.peBasicExclExtraTTM) ? ' (IA)' : '';
+  return { score, val:fmtX(per)+` (umbral ${th}x)`+tag, label:'PER (TTM)' };
 }
 
 // C2 — Consenso Analistas (Finnhub recommendation)
@@ -450,36 +451,40 @@ function c2(d) {
 }
 
 // C3 — Revenue YoY
-// FMP: revenueGrowthTTM (decimal) / AV: RevenueGrowthYOY (decimal) / Finnhub fallback
 function c3(d) {
-  const growth = safe(d.fkm?.revenueGrowthTTM)             // FMP decimal
-              ?? (d.av?.RevenueGrowthYOY ?? null)           // AV free calculado
-              ?? normGrowth(safe(d.metrics?.revenueGrowthTTMYoy));
+  const growth = safe(d.fkm?.revenueGrowthTTM)
+              ?? (d.av?.RevenueGrowthYOY ?? null)
+              ?? normGrowth(safe(d.metrics?.revenueGrowthTTMYoy))
+              ?? safe(d._claude?.revenueGrowthYOY);
   if (growth===null) return { score:0.5, val:'N/D', label:'Revenue YoY' };
   const score = growth>=0.08?1:growth>=0?0.5:0;
-  return { score, val:pct(growth)+' YoY', label:'Revenue YoY' };
+  const tag = d._claude?.revenueGrowthYOY && !safe(d.fkm?.revenueGrowthTTM) ? ' (IA)' : '';
+  return { score, val:pct(growth)+' YoY'+tag, label:'Revenue YoY' };
 }
 
 // C4 — Tendencia Márgenes Operativos
-// FMP: operatingProfitMarginTTM / AV: OperatingMarginTTM (decimal) / Finnhub fallback
 function c4(d) {
-  const curr = safe(d.frat?.operatingProfitMarginTTM)  // FMP decimal
-            ?? (d.av?.OperatingMarginTTM ?? null)       // AV free calculado
-            ?? normMargin(safe(d.metrics?.operatingMarginTTM));
+  const curr = safe(d.frat?.operatingProfitMarginTTM)
+            ?? (d.av?.OperatingMarginTTM ?? null)
+            ?? normMargin(safe(d.metrics?.operatingMarginTTM))
+            ?? safe(d._claude?.operatingMargin);
   const gross = safe(d.frat?.grossProfitMarginTTM)
-             ?? (d.av?.GrossMarginTTM ?? null)          // AV free calculado
-             ?? normMargin(safe(d.metrics?.grossMarginTTM));
+             ?? (d.av?.GrossMarginTTM ?? null)
+             ?? normMargin(safe(d.metrics?.grossMarginTTM))
+             ?? safe(d._claude?.grossMargin);
   if (curr===null) {
-    const net = safe(d.frat?.netProfitMarginTTM) ?? normMargin(safe(d.metrics?.netMarginTTM));
-    if (net!==null) return { score:net>0.1?1:net>0?0.5:0, val:'Margen neto '+pct(net), label:'Tendencia Márgenes' };
+    const net = safe(d.frat?.netProfitMarginTTM)
+             ?? normMargin(safe(d.metrics?.netMarginTTM))
+             ?? safe(d._claude?.netMargin);
+    if (net!==null) return { score:net>0.1?1:net>0?0.5:0, val:'Margen neto '+pct(net)+(d._claude?.netMargin&&!safe(d.frat?.netProfitMarginTTM)?' (IA)':''), label:'Tendencia Márgenes' };
     return { score:0.5, val:'N/D', label:'Tendencia Márgenes' };
   }
+  const tag = d._claude?.operatingMargin && !safe(d.frat?.operatingProfitMarginTTM) ? ' (IA)' : '';
   if (gross===null || Math.abs(curr-gross)<0.001) {
-    return { score:curr>0.15?1:curr>0?0.5:0, val:pct(curr)+' op.', label:'Tendencia Márgenes' };
+    return { score:curr>0.15?1:curr>0?0.5:0, val:pct(curr)+' op.'+tag, label:'Tendencia Márgenes' };
   }
-  // Margen operativo vs bruto: si op margin es sólido lo consideramos PASS
   const score = curr>0.20?1:curr>0.10?0.5:0;
-  return { score, val:`${pct(curr)} op. | ${pct(gross)} bruto`, label:'Tendencia Márgenes' };
+  return { score, val:`${pct(curr)} op. | ${pct(gross)} bruto`+tag, label:'Tendencia Márgenes' };
 }
 
 // C5 — Timing Earnings
@@ -502,19 +507,24 @@ function c5(d) {
       }
     }
   }
+  // Claude fallback: sabe si batió estimaciones
+  if (d._claude?.eps_sorpresa !== undefined && d._claude.eps_sorpresa !== null) {
+    const s = d._claude.eps_sorpresa;
+    return { score: s?1:0, val: s?'Batió estimaciones (IA)':'No batió estimaciones (IA)', label:'Timing Earnings' };
+  }
   return { score:0.5, val:'Sin fecha próxima', label:'Timing Earnings' };
 }
 
 // C6 — PEG Ratio
-// FMP: priceEarningsToGrowthRatioTTM / AV: PEGRatio
 function c6(d) {
-  const peg = safe(d.frat?.priceEarningsToGrowthRatioTTM)  // FMP directo
-           ?? av(d.av, 'PEGRatio');                         // AV string→número
+  const peg = safe(d.frat?.priceEarningsToGrowthRatioTTM)
+           ?? av(d.av, 'PEGRatio')
+           ?? safe(d._claude?.peg);
   if (peg!==null && peg>0 && peg<50) {
+    const tag = d._claude?.peg && !safe(d.frat?.priceEarningsToGrowthRatioTTM) ? ' (IA)' : '';
     const score = peg<1?1:peg<=1.5?0.5:0;
-    return { score, val:fmtX(peg)+' PEG', label:'PEG Ratio' };
+    return { score, val:fmtX(peg)+' PEG'+tag, label:'PEG Ratio' };
   }
-  // Fallback: PE / EPS growth
   const pe = safe(d.frat?.priceEarningsRatioTTM) ?? safe(d.metrics?.peBasicExclExtraTTM);
   const epsG = safe(d.metrics?.epsGrowthTTMYoy);
   if (pe && epsG && epsG>0 && pe>0) {
@@ -874,21 +884,19 @@ const CLAUDE_PROXY = 'https://8wfinanzas-claude-proxy.wagner-zambrano-r.workers.
 async function fetchClaude(ticker, d, claudeKey) {
   if (!claudeKey) return null;
   try {
-    const metrics = {
+    // Solo pasamos datos de mercado en tiempo real (precio, 52W, RSI)
+    const liveData = {
+      precio: d.quote?.c,
+      pe: d.quote?.pe,
+      high52w: d.metrics?.['52WeekHigh'],
+      low52w:  d.metrics?.['52WeekLow'],
       marketCap: d.profile?.marketCapitalization,
-      peRatio: d.quote?.pe,
-      revenueGrowth: d.av?.RevenueGrowthYOY,
-      operatingMargin: d.av?.OperatingMarginTTM,
-      ebitda: d.av?.EBITDA,
-      ocf: d.av?.OperatingCashflowTTM,
-      capex: d.av?.CapitalExpenditureTTM,
-      debtToEquity: d.metrics?.totalDebtToEquityAnnual,
-      evEbitdaFMP: d.metrics?.evToEbitdaTTM,
+      sector: d.profile?.finnhubIndustry,
     };
     const r = await fetch(CLAUDE_PROXY, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ticker, metrics, claudeKey }),
+      body: JSON.stringify({ ticker, liveData, claudeKey }),
     });
     if (!r.ok) return null;
     const data = await r.json();
