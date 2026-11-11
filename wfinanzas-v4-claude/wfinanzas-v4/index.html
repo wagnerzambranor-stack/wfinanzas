@@ -522,7 +522,7 @@ function c6(d) {
            ?? safe(d._claude?.peg);
   if (peg!==null && peg>0 && peg<50) {
     const tag = d._claude?.peg && !safe(d.frat?.priceEarningsToGrowthRatioTTM) ? ' (IA)' : '';
-    const score = peg<1?1:peg<=1.5?0.5:0;
+    const score = peg<1?1:peg<=2?0.5:0;
     return { score, val:fmtX(peg)+' PEG'+tag, label:'PEG Ratio' };
   }
   const pe = safe(d.frat?.priceEarningsRatioTTM) ?? safe(d.metrics?.peBasicExclExtraTTM);
@@ -530,7 +530,7 @@ function c6(d) {
   if (pe && epsG && epsG>0 && pe>0) {
     const pegCalc = pe / epsG;
     if (pegCalc>0 && pegCalc<50) {
-      const score = pegCalc<1?1:pegCalc<=1.5?0.5:0;
+      const score = pegCalc<1?1:pegCalc<=2?0.5:0;
       return { score, val:fmtX(pegCalc)+' (calc.)', label:'PEG Ratio' };
     }
   }
@@ -610,7 +610,9 @@ function c8(d) {
 // C9 — Precio vs máximo 52 semanas (≥85%)
 function c9(d) {
   const price = safe(d.quote?.c);
-  const high52 = safe(d.metrics?.['52WeekHigh']) ?? safe(d.fkm?.['52WeekHighTTM']);
+  let high52 = safe(d.metrics?.['52WeekHigh']) ?? safe(d.fkm?.['52WeekHighTTM']);
+  // Validar que el máximo 52s sea coherente con el precio actual (no más de 3x ni menos que precio)
+  if (high52 && price && (high52 > price * 3 || high52 < price * 0.5)) high52 = null;
   if (!price||!high52||high52<=0) return { score:0.5, val:'N/D', label:'Desc. desde máximos' };
   const ratio = price/high52;
   const score = ratio>=0.85?1:ratio>=0.70?0.5:0;
@@ -702,8 +704,10 @@ function c12(d) {
   // FMP buybackYieldTTM: positivo = recompras activas (ej: 0.025 = 2.5%)
   const buybackYield = safe(d.fkm?.buybackYieldTTM);  // FMP decimal ✓
   const shareChgFH = safe(d.metrics?.shareChangeAnnual);
+  const claudeRecompras = d._claude?.recomprasActivas; // IA fallback
   const recomprasActivas = (buybackYield!==null && buybackYield > 0.005)
-                        || (shareChgFH!==null && shareChgFH < -0.5);
+                        || (shareChgFH!==null && shareChgFH < -0.5)
+                        || (claudeRecompras === true);
 
   // Insiders Finnhub
   let insiderBuys=0, insiderSells=0;
