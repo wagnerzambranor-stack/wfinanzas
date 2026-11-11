@@ -144,14 +144,6 @@ body{overflow-x:hidden}
       <input id="apiKeyInput" class="input-field" type="password" placeholder="Clave Finnhub" autocomplete="off">
     </div>
     <div class="api-row">
-      <span class="input-label">FMP</span>
-      <input id="fmpKeyInput" class="input-field" type="password" placeholder="Clave FMP (opcional)" autocomplete="off">
-    </div>
-    <div class="api-row">
-      <span class="input-label">AV</span>
-      <input id="avKeyInput" class="input-field" type="password" placeholder="Clave Alpha Vantage" autocomplete="off">
-    </div>
-    <div class="api-row">
       <span class="input-label" style="color:#a78bfa">CLAUDE</span>
       <input id="claudeKeyInput" class="input-field" type="password" placeholder="Clave Claude API (rellena C7/C10 con IA)" autocomplete="off">
     </div>
@@ -233,121 +225,11 @@ async function fh(path, key) {
   return r.json();
 }
 
-// Financial Modeling Prep — via proxy Netlify
-const FMP = '/api/fmp';
-
-// Alpha Vantage — CORS abierto, 25 llamadas/día gratis
-const AV = '/api/av/query';  // proxy Netlify → alphavantage.co
-
-async function fetchAV(ticker, avKey) {
-  if (!avKey) return null;
-  const T = ticker.toUpperCase();
-  // Endpoints GRATUITOS de Alpha Vantage (OVERVIEW es premium)
-  async function avFetch(fn) {
-    try {
-      const r = await fetch(`${AV}?function=${fn}&symbol=${T}&apikey=${avKey}`);
-      if (!r.ok) return null;
-      const d = await r.json();
-      if (!d || d['Note'] || d['Information']) return null;
-      return d;
-    } catch(e) { return null; }
-  }
-  // Solo 2 endpoints gratuitos (ahorramos llamadas — 25/día máx)
-  const [income, cashflow] = await Promise.all([
-    avFetch('INCOME_STATEMENT'),
-    avFetch('CASH_FLOW'),
-  ]);
-  const balance = null; // BALANCE_SHEET se omite para ahorrar llamadas
-
-  // Extraer último año — AV usa 'annualReports' en income/cashflow pero 'annualReports' también en balance
-  function lastAnnual(rep) {
-    if (!rep) return null;
-    // AV devuelve annualReports para income/cashflow, y para balance a veces también
-    const arr = rep.annualReports || rep.annualEarnings || rep.quarterlyReports;
-    return arr?.[0] || null;
-  }
-  function avN(obj, key) {
-    if (!obj) return null;
-    const v = obj[key];
-    if (v===undefined||v===null||v==='-'||v==='None'||v==='') return null;
-    const n = parseFloat(v); return isNaN(n) ? null : n;
-  }
-
-  const inc = lastAnnual(income);
-  const bal = lastAnnual(balance);
-  const cf  = lastAnnual(cashflow);
-
-  if (!inc && !bal && !cf) { console.warn('[Wfinanzas] AV: todos los endpoints fallaron'); return null; }
-
-  // Log raw para diagnóstico
-  console.log('[Wfinanzas] AV bal keys:', bal ? Object.keys(bal).join(',') : 'null');
-  console.log('[Wfinanzas] AV cf keys:', cf ? Object.keys(cf).join(',') : 'null');
-
-  // Construir objeto equivalente al antiguo OVERVIEW con los campos que necesitamos
-  const ebitda = avN(inc,'ebitda');
-  // Cash Flow — campos confirmados en AV
-  const ocf  = avN(cf,'operatingCashflow');
-  const capex = avN(cf,'capitalExpenditures');
-  // Deuda: no disponible sin BALANCE_SHEET — usar Finnhub para C10
-  const totalDebt = null;
-  const cash = null;
-  const revenue = avN(inc,'totalRevenue');
-  const opIncome = avN(inc,'operatingIncome');
-  const grossProfit = avN(inc,'grossProfit');
-  const netIncome = avN(inc,'netIncome');
-
-  // Revenue growth YoY (año 0 vs año 1)
-  const rev1 = avN(income?.annualReports?.[1], 'totalRevenue');
-  const revenueGrowth = (revenue && rev1 && rev1>0) ? (revenue-rev1)/rev1 : null;
-
-  // Márgenes
-  const opMargin = (opIncome && revenue && revenue>0) ? opIncome/revenue : null;
-  const grossMargin = (grossProfit && revenue && revenue>0) ? grossProfit/revenue : null;
-  const netMargin = (netIncome && revenue && revenue>0) ? netIncome/revenue : null;
-
-  const result = {
-    _source: 'av-free',
-    EBITDA: ebitda,
-    TotalDebt: totalDebt,
-    CashAndCashEquivalentsAtCarryingValue: cash,
-    OperatingCashflowTTM: ocf,
-    CapitalExpenditureTTM: capex,
-    RevenueGrowthYOY: revenueGrowth,
-    OperatingMarginTTM: opMargin,
-    GrossMarginTTM: grossMargin,
-    NetMarginTTM: netMargin,
-  };
-  console.log('[Wfinanzas] AV free data:', result);
-  return result;
-}
-
-async function fetchFMP(ticker, fmpKey) {
-  const T = ticker.toUpperCase();
-  try {
-    const [ratios, keyMetrics, profile, earnings] = await Promise.allSettled([
-      fetch(`${FMP}/v3/ratios-ttm/${T}?apikey=${fmpKey}`).then(r=>r.ok?r.json():null),
-      fetch(`${FMP}/v3/key-metrics-ttm/${T}?apikey=${fmpKey}`).then(r=>r.ok?r.json():null),
-      fetch(`${FMP}/v3/profile/${T}?apikey=${fmpKey}`).then(r=>r.ok?r.json():null),
-      fetch(`${FMP}/v3/earnings-surprises/${T}?apikey=${fmpKey}`).then(r=>r.ok?r.json():null),
-    ]);
-    const g = r => r.status==='fulfilled' && r.value ? r.value : null;
-    const rat  = g(ratios)?.[0]      || {};
-    const km   = g(keyMetrics)?.[0]  || {};
-    const prof = g(profile)?.[0]     || {};
-    const earn = g(earnings)         || [];
-    console.log('[Wfinanzas] FMP ratios:', rat);
-    console.log('[Wfinanzas] FMP keyMetrics:', km);
-    return { rat, km, prof, earn };
-  } catch(e) {
-    console.warn('[Wfinanzas] FMP error:', e);
-    return null;
-  }
-}
 
 // ═══════════════════════════════════════════
-// FETCH TODOS LOS DATOS (Finnhub + Yahoo)
+// FETCH TODOS LOS DATOS (Finnhub + Claude AI)
 // ═══════════════════════════════════════════
-async function fetchAll(ticker, key, fmpKey, avKey) {
+async function fetchAll(ticker, key) {
   const T = ticker.toUpperCase();
   const today = new Date();
   const y1 = new Date(today); y1.setFullYear(today.getFullYear()-1);
@@ -356,12 +238,10 @@ async function fetchAll(ticker, key, fmpKey, avKey) {
   const from1y = y1.toISOString().slice(0,10);
   const toDate = today.toISOString().slice(0,10);
 
-  // Lanzar Finnhub + FMP en paralelo
   const [
     quote, profile, metrics,
     recommendations, insiders,
     rsiData, ma200Data,
-    fmpData, avData
   ] = await Promise.allSettled([
     fh(`/quote?symbol=${T}`, key),
     fh(`/stock/profile2?symbol=${T}`, key),
@@ -370,14 +250,9 @@ async function fetchAll(ticker, key, fmpKey, avKey) {
     fh(`/stock/insider-transactions?symbol=${T}&from=${from1y}&to=${toDate}`, key),
     fh(`/indicator?symbol=${T}&resolution=D&from=${from1yTs}&to=${toTs}&indicator=rsi&timeperiod=14`, key),
     fh(`/indicator?symbol=${T}&resolution=D&from=${from1yTs}&to=${toTs}&indicator=sma&timeperiod=200`, key),
-    fetchFMP(T, fmpKey),
-    fetchAV(T, avKey),
   ]);
 
   const g = r => r.status==='fulfilled' ? r.value : null;
-  const fmp = g(fmpData) || {};
-  const av  = g(avData)  || null;  // Alpha Vantage OVERVIEW
-  console.log('[Wfinanzas] AV data:', av);
 
   return {
     quote:    g(quote),
@@ -387,13 +262,7 @@ async function fetchAll(ticker, key, fmpKey, avKey) {
     insiders: g(insiders)?.data || [],
     rsiData:  g(rsiData),
     ma200:    g(ma200Data),
-    // FMP (plan pago — valores en decimal)
-    frat:  fmp.rat  || {},
-    fkm:   fmp.km   || {},
-    fprof: fmp.prof || {},
-    fearn: fmp.earn || [],
-    // Alpha Vantage OVERVIEW (plan free — valores como string)
-    av,
+    frat: {}, fkm: {}, fprof: {}, fearn: [], av: null,
   };
 }
 
@@ -915,8 +784,6 @@ async function fetchClaude(ticker, d, claudeKey) {
 async function analyze() {
   const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
   const apiKey = document.getElementById('apiKeyInput').value.trim();
-  const fmpKey = document.getElementById('fmpKeyInput').value.trim();
-  const avKey  = document.getElementById('avKeyInput').value.trim();
   const claudeKey = document.getElementById('claudeKeyInput').value.trim();
   const area = document.getElementById('resultArea');
   const btn = document.getElementById('btnAnalyze');
@@ -928,10 +795,10 @@ async function analyze() {
   }
 
   btn.disabled=true;
-  area.innerHTML=`<div class="state-block"><div class="spinner"></div><div class="state-title">Analizando ${ticker}…</div><div class="state-desc">Obteniendo datos de Finnhub + FMP…</div></div>`;
+  area.innerHTML=`<div class="state-block"><div class="spinner"></div><div class="state-title">Analizando ${ticker}…</div><div class="state-desc">Obteniendo datos de Finnhub…</div></div>`;
 
   try {
-    const d = await fetchAll(ticker, apiKey, fmpKey, avKey);
+    const d = await fetchAll(ticker, apiKey);
     if (!d.quote || d.quote.c===0) throw new Error(`No se encontraron datos para "${ticker}". Verifica el ticker y la API key.`);
 
     // Si hay Claude key, enriquecer con IA los criterios que faltan
@@ -960,16 +827,6 @@ try {
   if (savedFH) document.getElementById('apiKeyInput').value = savedFH;
   document.getElementById('apiKeyInput').addEventListener('change', e => {
     if (e.target.value) localStorage.setItem('fh_key', e.target.value);
-  });
-  const savedFMP = localStorage.getItem('fmp_key');
-  if (savedFMP) document.getElementById('fmpKeyInput').value = savedFMP;
-  document.getElementById('fmpKeyInput').addEventListener('change', e => {
-    if (e.target.value) localStorage.setItem('fmp_key', e.target.value);
-  });
-  const savedAV = localStorage.getItem('av_key');
-  if (savedAV) document.getElementById('avKeyInput').value = savedAV;
-  document.getElementById('avKeyInput').addEventListener('change', e => {
-    if (e.target.value) localStorage.setItem('av_key', e.target.value);
   });
   const savedClaude = localStorage.getItem('claude_key');
   if (savedClaude) document.getElementById('claudeKeyInput').value = savedClaude;
