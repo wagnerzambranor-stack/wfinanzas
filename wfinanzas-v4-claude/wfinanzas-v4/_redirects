@@ -1,0 +1,2 @@
+/api/fmp/* https://financialmodelingprep.com/api/:splat 200
+/api/av/* https://www.alphavantage.co/:splat 200

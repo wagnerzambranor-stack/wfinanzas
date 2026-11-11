@@ -1,0 +1,26 @@
+{
+  "name": "Wfinanzas · Filtro Fundamental",
+  "short_name": "Wfinanzas",
+  "description": "Análisis fundamental de acciones — 12 criterios PASS/NEUTRAL/FAIL ajustados por sector · FMP API",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0d14",
+  "theme_color": "#6c63ff",
+  "lang": "es",
+  "categories": ["finance", "utilities"],
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

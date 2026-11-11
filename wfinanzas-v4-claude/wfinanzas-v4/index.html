@@ -1,0 +1,975 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d0d14">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Wfinanzas · Filtro Fundamental</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg1:#0d0d14; --bg2:#13131f; --bg3:#1a1a2e;
+  --border:#252540; --border2:#2e2e55;
+  --text1:#f0f0ff; --text2:#a0a0c8; --text3:#606080;
+  --purple:#6c63ff; --purple2:#8b85ff;
+  --green:#00e676; --yellow:#ffd740; --red:#ff4d6a;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg1);color:var(--text1);font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+body{overflow-x:hidden}
+.app{max-width:480px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;padding:0 0 32px}
+.header{padding:20px 20px 0;text-align:center}
+.logo{font-size:22px;font-weight:700;letter-spacing:-0.5px;color:var(--text1);margin-bottom:2px}
+.logo span{color:var(--purple)}
+.subtitle{font-size:11px;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:20px}
+.header-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(108,99,255,0.12);border:1px solid rgba(108,99,255,0.3);border-radius:20px;padding:5px 14px;font-size:11px;color:var(--purple);font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:14px}
+.search-section{padding:16px 20px}
+.search-row{display:flex;gap:8px;margin-bottom:12px}
+.ticker-input{flex:1;background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px 16px;color:var(--text1);font-size:16px;font-weight:600;font-family:'JetBrains Mono',monospace;outline:none;letter-spacing:0.06em;transition:border-color .2s}
+.ticker-input:focus{border-color:var(--purple)}
+.ticker-input::placeholder{color:var(--text3);font-weight:400;letter-spacing:0}
+.btn-analyze{background:var(--purple);border:none;border-radius:10px;padding:12px 22px;color:#fff;font-size:14px;font-weight:600;cursor:pointer;white-space:nowrap;transition:opacity .15s,transform .1s}
+.btn-analyze:active{transform:scale(0.97)}
+.btn-analyze:disabled{opacity:0.5;cursor:not-allowed}
+.api-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.input-label{font-size:11px;color:var(--text3);font-weight:500;letter-spacing:0.04em;white-space:nowrap}
+.input-field{flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text1);font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .2s}
+.input-field:focus{border-color:var(--purple)}
+.tips{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.tip{background:var(--bg3);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--text2);cursor:pointer;transition:all .15s}
+.tip:hover{border-color:var(--purple2);color:var(--text1)}
+.info-note{font-size:11px;color:var(--text3);padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:8px;border:1px solid var(--border);margin-top:10px;line-height:1.5}
+.section{padding:0 20px;margin-bottom:12px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:12px}
+.card-title{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:14px}
+.company-header{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.company-logo{width:48px;height:48px;border-radius:12px;background:var(--bg3);border:1px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--purple);flex-shrink:0}
+.company-logo img{width:100%;height:100%;object-fit:cover}
+.company-info{flex:1;min-width:0}
+.company-name{font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.company-meta{display:flex;align-items:center;gap:6px;margin-top:3px}
+.company-ticker{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--text3);background:var(--bg3);padding:2px 8px;border-radius:4px}
+.sector-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.sector-badge.tech{background:rgba(0,230,118,0.12);color:var(--green)}
+.sector-badge.healthcare{background:rgba(255,215,64,0.12);color:var(--yellow)}
+.sector-badge.financial{background:rgba(108,99,255,0.12);color:var(--purple)}
+.sector-badge.industrial,.sector-badge.default{background:rgba(160,160,192,0.12);color:var(--text2)}
+.sector-badge.luxury{background:rgba(255,77,106,0.12);color:var(--red)}
+.verdict-block{border-radius:var(--radius);padding:20px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.verdict-block.buy{background:linear-gradient(135deg,rgba(0,230,118,0.08),rgba(0,230,118,0.03));border:1px solid rgba(0,230,118,0.2)}
+.verdict-block.watch{background:linear-gradient(135deg,rgba(255,215,64,0.08),rgba(255,215,64,0.03));border:1px solid rgba(255,215,64,0.2)}
+.verdict-block.discard{background:linear-gradient(135deg,rgba(255,77,106,0.08),rgba(255,77,106,0.03));border:1px solid rgba(255,77,106,0.2)}
+.verdict-text{flex:1}
+.verdict-label{font-size:20px;font-weight:700;margin-bottom:4px}
+.verdict-block.buy .verdict-label{color:var(--green)}
+.verdict-block.watch .verdict-label{color:var(--yellow)}
+.verdict-block.discard .verdict-label{color:var(--red)}
+.verdict-desc{font-size:12px;color:var(--text2)}
+.score-ring{width:72px;height:72px;flex-shrink:0}
+.score-ring svg{width:72px;height:72px}
+.legend{display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3)}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.layer{margin-bottom:16px}
+.layer-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.layer-badge{padding:2px 10px;border-radius:12px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase}
+.layer-badge.l1{background:rgba(108,99,255,0.15);color:var(--purple2)}
+.layer-badge.l2{background:rgba(0,230,118,0.12);color:var(--green)}
+.layer-badge.l3{background:rgba(255,215,64,0.12);color:var(--yellow)}
+.layer-badge.l4{background:rgba(255,77,106,0.12);color:var(--red)}
+.layer-title{font-size:12px;font-weight:600;color:var(--text2)}
+.criteria-list{display:flex;flex-direction:column;gap:5px}
+.criterion-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg3);border-radius:10px;border-left:3px solid transparent}
+.criterion-row.pass{border-left-color:var(--green)}
+.criterion-row.neutral{border-left-color:var(--yellow)}
+.criterion-row.fail{border-left-color:var(--red)}
+.criterion-num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);width:24px;flex-shrink:0}
+.criterion-name{flex:1;font-size:12px;color:var(--text2)}
+.criterion-val{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text3);text-align:right;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.criterion-score{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;width:28px;text-align:right;flex-shrink:0}
+.criterion-row.pass .criterion-score{color:var(--green)}
+.criterion-row.neutral .criterion-score{color:var(--yellow)}
+.criterion-row.fail .criterion-score{color:var(--red)}
+.notes-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.note-item{background:var(--bg3);border-radius:10px;padding:12px}
+.note-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px}
+.note-val{font-size:14px;font-weight:600;font-family:'JetBrains Mono',monospace}
+.note-val.up{color:var(--green)}
+.note-val.down{color:var(--red)}
+.state-block{padding:40px 20px;text-align:center}
+.spinner{width:36px;height:36px;border:3px solid var(--border2);border-top-color:var(--purple);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.state-title{font-size:15px;font-weight:600;margin-bottom:6px}
+.state-desc{font-size:13px;color:var(--text2)}
+.error-block{background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2);border-radius:12px;padding:16px;margin:0 20px}
+.empty-state{padding:60px 20px;text-align:center}
+.empty-icon{font-size:48px;margin-bottom:16px;opacity:.5}
+.empty-title{font-size:16px;font-weight:600;color:var(--text2);margin-bottom:8px}
+.empty-desc{font-size:13px;color:var(--text3);line-height:1.6}
+.bands-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin:0 20px 12px}
+.bands-title{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:10px}
+.bands-row{display:flex;gap:6px}
+.band{flex:1;border-radius:8px;padding:8px 10px;text-align:center}
+.band.buy{background:rgba(0,230,118,0.08);border:1px solid rgba(0,230,118,0.2)}
+.band.watch{background:rgba(255,215,64,0.08);border:1px solid rgba(255,215,64,0.2)}
+.band.discard{background:rgba(255,77,106,0.08);border:1px solid rgba(255,77,106,0.2)}
+.band-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:2px}
+.band.buy .band-label{color:var(--green)}
+.band.watch .band-label{color:var(--yellow)}
+.band.discard .band-label{color:var(--red)}
+.band-range{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2)}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+
+  <div class="header">
+    <div class="logo">W<span>finanzas</span></div>
+    <div class="subtitle">Filtro Fundamental · 12 Criterios</div>
+    <div class="header-badge">⬡ Finnhub · Tiempo Real</div>
+  </div>
+
+  <div class="search-section">
+    <div class="search-row">
+      <input id="tickerInput" class="ticker-input" type="text" placeholder="Ticker (ej: AAPL)" maxlength="10" autocomplete="off" autocapitalize="characters" spellcheck="false">
+      <button id="btnAnalyze" class="btn-analyze" onclick="analyze()">Analizar</button>
+    </div>
+    <div class="api-row">
+      <span class="input-label">FINNHUB</span>
+      <input id="apiKeyInput" class="input-field" type="password" placeholder="Clave Finnhub" autocomplete="off">
+    </div>
+    <div class="api-row">
+      <span class="input-label">FMP</span>
+      <input id="fmpKeyInput" class="input-field" type="password" placeholder="Clave FMP (opcional)" autocomplete="off">
+    </div>
+    <div class="api-row">
+      <span class="input-label">AV</span>
+      <input id="avKeyInput" class="input-field" type="password" placeholder="Clave Alpha Vantage" autocomplete="off">
+    </div>
+    <div class="api-row">
+      <span class="input-label" style="color:#a78bfa">CLAUDE</span>
+      <input id="claudeKeyInput" class="input-field" type="password" placeholder="Clave Claude API (rellena C7/C10 con IA)" autocomplete="off">
+    </div>
+    <div class="tips">
+      <span class="tip" onclick="setTicker('AAPL')">AAPL</span>
+      <span class="tip" onclick="setTicker('GOOGL')">GOOGL</span>
+      <span class="tip" onclick="setTicker('MSFT')">MSFT</span>
+      <span class="tip" onclick="setTicker('AVGO')">AVGO</span>
+      <span class="tip" onclick="setTicker('NVDA')">NVDA</span>
+      <span class="tip" onclick="setTicker('ABBV')">ABBV</span>
+    </div>
+    <div class="info-note">📡 Datos en tiempo real vía Finnhub · Sin dato disponible → NEUTRAL (0.5) automático</div>
+  </div>
+
+  <div class="bands-card">
+    <div class="bands-title">Bandas de Decisión</div>
+    <div class="bands-row">
+      <div class="band buy"><div class="band-label">COMPRA</div><div class="band-range">≥ 8.0 / 12</div></div>
+      <div class="band watch"><div class="band-label">VIGILAR</div><div class="band-range">6.0 – 7.9</div></div>
+      <div class="band discard"><div class="band-label">DESCARTAR</div><div class="band-range">&lt; 6.0</div></div>
+    </div>
+  </div>
+
+  <div id="resultArea">
+    <div class="empty-state">
+      <div class="empty-icon">📊</div>
+      <div class="empty-title">Introduce un ticker para analizar</div>
+      <div class="empty-desc">El Filtro Fundamental evalúa 12 criterios<br>con datos de Finnhub en tiempo real</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════
+const FH = 'https://finnhub.io/api/v1';
+
+const SECTOR_PER = { tech:35, healthcare:25, industrial:22, financial:15, luxury:45, default:25 };
+const SECTOR_EVEBITDA = { tech:25, healthcare:20, industrial:15, financial:12, luxury:30, default:20 };
+
+function detectSector(profile) {
+  if (!profile) return 'default';
+  const s = (profile.finnhubIndustry || '').toLowerCase();
+  if (s.includes('tech') || s.includes('software') || s.includes('semiconductor') || s.includes('internet')) return 'tech';
+  if (s.includes('health') || s.includes('pharma') || s.includes('biotech') || s.includes('medical')) return 'healthcare';
+  if (s.includes('bank') || s.includes('financ') || s.includes('insurance') || s.includes('asset')) return 'financial';
+  if (s.includes('industri') || s.includes('manufactur') || s.includes('aerospace') || s.includes('defense')) return 'industrial';
+  if (s.includes('luxury') || s.includes('fashion') || s.includes('apparel')) return 'luxury';
+  return 'default';
+}
+
+// ═══════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════
+function safe(val, def=null) {
+  if (val===null||val===undefined||val===''||(typeof val==='number'&&isNaN(val))) return def;
+  return val;
+}
+// Alpha Vantage devuelve strings — parsear a número
+function av(obj, key) {
+  if (!obj) return null;
+  const v = obj[key];
+  if (v===undefined||v===null||v==='-'||v==='None'||v==='') return null;
+  const n = parseFloat(v);
+  return isNaN(n) ? null : n;
+}
+function nd(val) { return (val===null||val===undefined||isNaN(val)) ? 0.5 : null; }
+function pct(val) { if (val===null||val===undefined) return 'N/D'; return (val*100).toFixed(1)+'%'; }
+function fmt(val,d=2) { if (val===null||val===undefined) return 'N/D'; return parseFloat(val).toFixed(d); }
+function fmtX(val) { if (val===null||val===undefined) return 'N/D'; return parseFloat(val).toFixed(1)+'x'; }
+
+async function fh(path, key) {
+  const sep = path.includes('?') ? '&' : '?';
+  const url = `${FH}${path}${sep}token=${key}`;
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`Finnhub ${r.status}: ${path}`);
+  return r.json();
+}
+
+// Financial Modeling Prep — via proxy Netlify
+const FMP = '/api/fmp';
+
+// Alpha Vantage — CORS abierto, 25 llamadas/día gratis
+const AV = '/api/av/query';  // proxy Netlify → alphavantage.co
+
+async function fetchAV(ticker, avKey) {
+  if (!avKey) return null;
+  const T = ticker.toUpperCase();
+  // Endpoints GRATUITOS de Alpha Vantage (OVERVIEW es premium)
+  async function avFetch(fn) {
+    try {
+      const r = await fetch(`${AV}?function=${fn}&symbol=${T}&apikey=${avKey}`);
+      if (!r.ok) return null;
+      const d = await r.json();
+      if (!d || d['Note'] || d['Information']) return null;
+      return d;
+    } catch(e) { return null; }
+  }
+  // Solo 2 endpoints gratuitos (ahorramos llamadas — 25/día máx)
+  const [income, cashflow] = await Promise.all([
+    avFetch('INCOME_STATEMENT'),
+    avFetch('CASH_FLOW'),
+  ]);
+  const balance = null; // BALANCE_SHEET se omite para ahorrar llamadas
+
+  // Extraer último año — AV usa 'annualReports' en income/cashflow pero 'annualReports' también en balance
+  function lastAnnual(rep) {
+    if (!rep) return null;
+    // AV devuelve annualReports para income/cashflow, y para balance a veces también
+    const arr = rep.annualReports || rep.annualEarnings || rep.quarterlyReports;
+    return arr?.[0] || null;
+  }
+  function avN(obj, key) {
+    if (!obj) return null;
+    const v = obj[key];
+    if (v===undefined||v===null||v==='-'||v==='None'||v==='') return null;
+    const n = parseFloat(v); return isNaN(n) ? null : n;
+  }
+
+  const inc = lastAnnual(income);
+  const bal = lastAnnual(balance);
+  const cf  = lastAnnual(cashflow);
+
+  if (!inc && !bal && !cf) { console.warn('[Wfinanzas] AV: todos los endpoints fallaron'); return null; }
+
+  // Log raw para diagnóstico
+  console.log('[Wfinanzas] AV bal keys:', bal ? Object.keys(bal).join(',') : 'null');
+  console.log('[Wfinanzas] AV cf keys:', cf ? Object.keys(cf).join(',') : 'null');
+
+  // Construir objeto equivalente al antiguo OVERVIEW con los campos que necesitamos
+  const ebitda = avN(inc,'ebitda');
+  // Cash Flow — campos confirmados en AV
+  const ocf  = avN(cf,'operatingCashflow');
+  const capex = avN(cf,'capitalExpenditures');
+  // Deuda: no disponible sin BALANCE_SHEET — usar Finnhub para C10
+  const totalDebt = null;
+  const cash = null;
+  const revenue = avN(inc,'totalRevenue');
+  const opIncome = avN(inc,'operatingIncome');
+  const grossProfit = avN(inc,'grossProfit');
+  const netIncome = avN(inc,'netIncome');
+
+  // Revenue growth YoY (año 0 vs año 1)
+  const rev1 = avN(income?.annualReports?.[1], 'totalRevenue');
+  const revenueGrowth = (revenue && rev1 && rev1>0) ? (revenue-rev1)/rev1 : null;
+
+  // Márgenes
+  const opMargin = (opIncome && revenue && revenue>0) ? opIncome/revenue : null;
+  const grossMargin = (grossProfit && revenue && revenue>0) ? grossProfit/revenue : null;
+  const netMargin = (netIncome && revenue && revenue>0) ? netIncome/revenue : null;
+
+  const result = {
+    _source: 'av-free',
+    EBITDA: ebitda,
+    TotalDebt: totalDebt,
+    CashAndCashEquivalentsAtCarryingValue: cash,
+    OperatingCashflowTTM: ocf,
+    CapitalExpenditureTTM: capex,
+    RevenueGrowthYOY: revenueGrowth,
+    OperatingMarginTTM: opMargin,
+    GrossMarginTTM: grossMargin,
+    NetMarginTTM: netMargin,
+  };
+  console.log('[Wfinanzas] AV free data:', result);
+  return result;
+}
+
+async function fetchFMP(ticker, fmpKey) {
+  const T = ticker.toUpperCase();
+  try {
+    const [ratios, keyMetrics, profile, earnings] = await Promise.allSettled([
+      fetch(`${FMP}/v3/ratios-ttm/${T}?apikey=${fmpKey}`).then(r=>r.ok?r.json():null),
+      fetch(`${FMP}/v3/key-metrics-ttm/${T}?apikey=${fmpKey}`).then(r=>r.ok?r.json():null),
+      fetch(`${FMP}/v3/profile/${T}?apikey=${fmpKey}`).then(r=>r.ok?r.json():null),
+      fetch(`${FMP}/v3/earnings-surprises/${T}?apikey=${fmpKey}`).then(r=>r.ok?r.json():null),
+    ]);
+    const g = r => r.status==='fulfilled' && r.value ? r.value : null;
+    const rat  = g(ratios)?.[0]      || {};
+    const km   = g(keyMetrics)?.[0]  || {};
+    const prof = g(profile)?.[0]     || {};
+    const earn = g(earnings)         || [];
+    console.log('[Wfinanzas] FMP ratios:', rat);
+    console.log('[Wfinanzas] FMP keyMetrics:', km);
+    return { rat, km, prof, earn };
+  } catch(e) {
+    console.warn('[Wfinanzas] FMP error:', e);
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════
+// FETCH TODOS LOS DATOS (Finnhub + Yahoo)
+// ═══════════════════════════════════════════
+async function fetchAll(ticker, key, fmpKey, avKey) {
+  const T = ticker.toUpperCase();
+  const today = new Date();
+  const y1 = new Date(today); y1.setFullYear(today.getFullYear()-1);
+  const toTs = Math.floor(today.getTime()/1000);
+  const from1yTs = Math.floor(y1.getTime()/1000);
+  const from1y = y1.toISOString().slice(0,10);
+  const toDate = today.toISOString().slice(0,10);
+
+  // Lanzar Finnhub + FMP en paralelo
+  const [
+    quote, profile, metrics,
+    recommendations, insiders,
+    rsiData, ma200Data,
+    fmpData, avData
+  ] = await Promise.allSettled([
+    fh(`/quote?symbol=${T}`, key),
+    fh(`/stock/profile2?symbol=${T}`, key),
+    fh(`/stock/metric?symbol=${T}&metric=all`, key),
+    fh(`/stock/recommendation?symbol=${T}`, key),
+    fh(`/stock/insider-transactions?symbol=${T}&from=${from1y}&to=${toDate}`, key),
+    fh(`/indicator?symbol=${T}&resolution=D&from=${from1yTs}&to=${toTs}&indicator=rsi&timeperiod=14`, key),
+    fh(`/indicator?symbol=${T}&resolution=D&from=${from1yTs}&to=${toTs}&indicator=sma&timeperiod=200`, key),
+    fetchFMP(T, fmpKey),
+    fetchAV(T, avKey),
+  ]);
+
+  const g = r => r.status==='fulfilled' ? r.value : null;
+  const fmp = g(fmpData) || {};
+  const av  = g(avData)  || null;  // Alpha Vantage OVERVIEW
+  console.log('[Wfinanzas] AV data:', av);
+
+  return {
+    quote:    g(quote),
+    profile:  g(profile),
+    metrics:  g(metrics)?.metric || null,
+    recs:     g(recommendations) || [],
+    insiders: g(insiders)?.data || [],
+    rsiData:  g(rsiData),
+    ma200:    g(ma200Data),
+    // FMP (plan pago — valores en decimal)
+    frat:  fmp.rat  || {},
+    fkm:   fmp.km   || {},
+    fprof: fmp.prof || {},
+    fearn: fmp.earn || [],
+    // Alpha Vantage OVERVIEW (plan free — valores como string)
+    av,
+  };
+}
+
+// ═══════════════════════════════════════════
+// 12 CRITERIOS — Finnhub + Yahoo Finance
+// Yahoo: valores en decimal real (0.222 = 22.2%)
+// Finnhub metrics: valores en % entero (22.2 = 22.2%) → normGrowth/normMargin
+// ═══════════════════════════════════════════
+
+function normGrowth(v) { // Finnhub growth: en % → decimal
+  if (v===null||v===undefined||isNaN(v)) return null;
+  return v / 100;
+}
+function normMargin(v) { // Finnhub margin: en % → decimal
+  if (v===null||v===undefined||isNaN(v)) return null;
+  return v / 100;
+}
+function yv(val) { // Yahoo: ya en decimal, solo null-check
+  if (val===null||val===undefined||isNaN(val)) return null;
+  return val;
+}
+
+// C1 — PER TTM ajustado sector
+// Yahoo summaryDetail.trailingPE / Finnhub peBasicExclExtraTTM
+function c1(d, sector) {
+  // FMP ratios-ttm → priceEarningsRatioTTM
+  const per = safe(d.frat?.priceEarningsRatioTTM)
+           ?? safe(d.metrics?.peBasicExclExtraTTM)
+           ?? safe(d.metrics?.peExclExtraTTM)
+           ?? safe(d.metrics?.peNormalizedAnnual);
+  if (per===null||isNaN(per)) return { score:0.5, val:'N/D', label:'PER (TTM)' };
+  if (per<=0) return { score:0.5, val:fmtX(per)+' (neg.)', label:'PER (TTM)' };
+  const th = SECTOR_PER[sector];
+  const score = per<=th?1:per<=th*1.3?0.5:0;
+  return { score, val:fmtX(per)+` (umbral ${th}x)`, label:'PER (TTM)' };
+}
+
+// C2 — Consenso Analistas (Finnhub recommendation)
+function c2(d) {
+  const recs = d.recs;
+  if (recs && recs.length>0) {
+    const r = recs[0];
+    const buy  = safe(r.buy,0) + safe(r.strongBuy,0);
+    const sell = safe(r.sell,0) + safe(r.strongSell,0);
+    const hold = safe(r.hold,0);
+    const total = buy+sell+hold;
+    if (total>0) {
+      const buyPct = buy/total;
+      const score = buyPct>=0.6?1:buyPct>=0.4?0.5:0;
+      return { score, val:`${buy}B/${hold}N/${sell}S (${Math.round(buyPct*100)}% compra)`, label:'Consenso Analistas' };
+    }
+  }
+  return { score:0.5, val:'N/D', label:'Consenso Analistas' };
+}
+
+// C3 — Revenue YoY
+// FMP: revenueGrowthTTM (decimal) / AV: RevenueGrowthYOY (decimal) / Finnhub fallback
+function c3(d) {
+  const growth = safe(d.fkm?.revenueGrowthTTM)             // FMP decimal
+              ?? (d.av?.RevenueGrowthYOY ?? null)           // AV free calculado
+              ?? normGrowth(safe(d.metrics?.revenueGrowthTTMYoy));
+  if (growth===null) return { score:0.5, val:'N/D', label:'Revenue YoY' };
+  const score = growth>=0.08?1:growth>=0?0.5:0;
+  return { score, val:pct(growth)+' YoY', label:'Revenue YoY' };
+}
+
+// C4 — Tendencia Márgenes Operativos
+// FMP: operatingProfitMarginTTM / AV: OperatingMarginTTM (decimal) / Finnhub fallback
+function c4(d) {
+  const curr = safe(d.frat?.operatingProfitMarginTTM)  // FMP decimal
+            ?? (d.av?.OperatingMarginTTM ?? null)       // AV free calculado
+            ?? normMargin(safe(d.metrics?.operatingMarginTTM));
+  const gross = safe(d.frat?.grossProfitMarginTTM)
+             ?? (d.av?.GrossMarginTTM ?? null)          // AV free calculado
+             ?? normMargin(safe(d.metrics?.grossMarginTTM));
+  if (curr===null) {
+    const net = safe(d.frat?.netProfitMarginTTM) ?? normMargin(safe(d.metrics?.netMarginTTM));
+    if (net!==null) return { score:net>0.1?1:net>0?0.5:0, val:'Margen neto '+pct(net), label:'Tendencia Márgenes' };
+    return { score:0.5, val:'N/D', label:'Tendencia Márgenes' };
+  }
+  if (gross===null || Math.abs(curr-gross)<0.001) {
+    return { score:curr>0.15?1:curr>0?0.5:0, val:pct(curr)+' op.', label:'Tendencia Márgenes' };
+  }
+  // Margen operativo vs bruto: si op margin es sólido lo consideramos PASS
+  const score = curr>0.20?1:curr>0.10?0.5:0;
+  return { score, val:`${pct(curr)} op. | ${pct(gross)} bruto`, label:'Tendencia Márgenes' };
+}
+
+// C5 — Timing Earnings
+// FMP earnings-surprises: fecha del trimestre más reciente para inferir próximo
+function c5(d) {
+  const today = new Date();
+  const earn = d.fearn || [];
+  if (earn.length > 0) {
+    // Último earnings conocido
+    const last = earn[0];
+    const lastDate = last?.date ? new Date(last.date) : null;
+    if (lastDate && !isNaN(lastDate)) {
+      // Próximo earnings estimado ~90 días después del último
+      const next = new Date(lastDate);
+      next.setDate(next.getDate() + 90);
+      if (next > today) {
+        const days = Math.round((next-today)/86400000);
+        const score = days>21?1:days>=7?0.5:0;
+        return { score, val:`~${days}d próximo (est. ${next.toISOString().slice(0,10)})`, label:'Timing Earnings' };
+      }
+    }
+  }
+  return { score:0.5, val:'Sin fecha próxima', label:'Timing Earnings' };
+}
+
+// C6 — PEG Ratio
+// FMP: priceEarningsToGrowthRatioTTM / AV: PEGRatio
+function c6(d) {
+  const peg = safe(d.frat?.priceEarningsToGrowthRatioTTM)  // FMP directo
+           ?? av(d.av, 'PEGRatio');                         // AV string→número
+  if (peg!==null && peg>0 && peg<50) {
+    const score = peg<1?1:peg<=1.5?0.5:0;
+    return { score, val:fmtX(peg)+' PEG', label:'PEG Ratio' };
+  }
+  // Fallback: PE / EPS growth
+  const pe = safe(d.frat?.priceEarningsRatioTTM) ?? safe(d.metrics?.peBasicExclExtraTTM);
+  const epsG = safe(d.metrics?.epsGrowthTTMYoy);
+  if (pe && epsG && epsG>0 && pe>0) {
+    const pegCalc = pe / epsG;
+    if (pegCalc>0 && pegCalc<50) {
+      const score = pegCalc<1?1:pegCalc<=1.5?0.5:0;
+      return { score, val:fmtX(pegCalc)+' (calc.)', label:'PEG Ratio' };
+    }
+  }
+  return { score:0.5, val:'N/D', label:'PEG Ratio' };
+}
+
+// C7 — EV/EBITDA ajustado sector
+// FMP: enterpriseValueOverEBITDATTM / AV free: calcular EV/EBITDA / Finnhub fallback
+function c7(d, sector) {
+  // FMP directo (plan pago)
+  let evEbitda = safe(d.fkm?.enterpriseValueOverEBITDATTM);
+  // AV free: EV ≈ MarketCap / EBITDA (sin deuda exacta usamos solo mktCap/EBITDA como proxy)
+  if (evEbitda===null && d.av?.EBITDA) {
+    const mktCap = safe(d.profile?.marketCapitalization);
+    const ebitda = d.av.EBITDA;
+    if (mktCap && ebitda > 0) {
+      // EV ≈ MarketCap (aproximación sin deuda neta — subestima para empresas con deuda)
+      evEbitda = mktCap / ebitda;
+    }
+  }
+  // Finnhub fallback
+  if (evEbitda===null) evEbitda = safe(d.metrics?.evToEbitdaTTM) ?? safe(d.metrics?.currentEvToFreeCashFlowTTM);
+  // Claude AI fallback
+  if ((evEbitda===null||isNaN(evEbitda)||evEbitda<=0) && d._claude?.evEbitda) {
+    evEbitda = d._claude.evEbitda;
+    if (evEbitda!==null&&!isNaN(evEbitda)&&evEbitda>0) {
+      const th = SECTOR_EVEBITDA[sector];
+      const score = evEbitda<=th?1:evEbitda<=th*1.3?0.5:0;
+      return { score, val:fmtX(evEbitda)+` (IA·umbral ${th}x)`, label:'EV/EBITDA' };
+    }
+  }
+  if (evEbitda===null||isNaN(evEbitda)||evEbitda<=0) return { score:0.5, val:'N/D', label:'EV/EBITDA' };
+  const th = SECTOR_EVEBITDA[sector];
+  const score = evEbitda<=th?1:evEbitda<=th*1.3?0.5:0;
+  return { score, val:fmtX(evEbitda)+` (umbral ${th}x)`, label:'EV/EBITDA' };
+}
+
+// C8 — FCF Yield > 3.5%
+// FMP: freeCashFlowYieldTTM / AV: calcular FCF/MarketCap / Finnhub P/FCF
+function c8(d) {
+  // FMP directo en decimal
+  const yield_ = safe(d.fkm?.freeCashFlowYieldTTM);
+  if (yield_!==null && yield_>-0.5 && yield_<0.5) {
+    const score = yield_>0.035?1:yield_>0?0.5:0;
+    return { score, val:pct(yield_)+' FCF Yield', label:'FCF Yield' };
+  }
+  // AV free: OCF - Capex = FCF / MarketCap (Finnhub profile)
+  const ocf2  = d.av?.OperatingCashflowTTM ?? null;
+  const capex2 = d.av?.CapitalExpenditureTTM ?? null;
+  const mktCap = safe(d.profile?.marketCapitalization);
+  if (ocf2!==null && capex2!==null && mktCap && mktCap>0) {
+    const fcf = ocf2 - Math.abs(capex2);
+    const y2 = fcf / mktCap;
+    if (y2>-0.5 && y2<0.5) {
+      const score = y2>0.035?1:y2>0?0.5:0;
+      return { score, val:pct(y2)+' FCF Yield', label:'FCF Yield' };
+    }
+  }
+  // Finnhub P/FCF invertido
+  const price = safe(d.quote?.c);
+  const pfcf = safe(d.metrics?.pfcfShareTTM) ?? safe(d.metrics?.pfcfShareAnnual);
+  if (pfcf && pfcf>0 && pfcf<500 && price) {
+    const y3 = 1/pfcf;
+    return { score:y3>0.035?1:y3>0?0.5:0, val:pct(y3)+' (P/FCF)', label:'FCF Yield' };
+  }
+  // Claude AI fallback
+  if (d._claude?.fcfYield !== undefined && d._claude.fcfYield !== null) {
+    const y4 = d._claude.fcfYield;
+    if (y4>-0.5 && y4<0.5) {
+      const score = y4>0.035?1:y4>0?0.5:0;
+      return { score, val:pct(y4)+' FCF Yield (IA)', label:'FCF Yield' };
+    }
+  }
+  return { score:0.5, val:'N/D', label:'FCF Yield' };
+}
+
+// C9 — Precio vs máximo 52 semanas (≥85%)
+function c9(d) {
+  const price = safe(d.quote?.c);
+  const high52 = safe(d.metrics?.['52WeekHigh']) ?? safe(d.fkm?.['52WeekHighTTM']);
+  if (!price||!high52||high52<=0) return { score:0.5, val:'N/D', label:'Desc. desde máximos' };
+  const ratio = price/high52;
+  const score = ratio>=0.85?1:ratio>=0.70?0.5:0;
+  return { score, val:`${pct(ratio)} del máx. $${fmt(high52,1)}`, label:'Desc. desde máximos' };
+}
+
+// C10 — Deuda Neta / EBITDA
+// FMP: netDebtToEBITDATTM / AV: calcular (TotalDebt - CashAndCashEquivalentsAtCarryingValue) / EBITDA
+function c10(d) {
+  // FMP directo
+  const ratio = safe(d.fkm?.netDebtToEBITDATTM);
+  if (ratio!==null && !isNaN(ratio)) {
+    if (ratio<=0) return { score:1, val:'Caja neta', label:'Deuda Neta/EBITDA' };
+    const score = ratio<1.5?1:ratio<=3?0.5:0;
+    return { score, val:fmtX(ratio), label:'Deuda Neta/EBITDA' };
+  }
+  // Finnhub: totalDebt/EBITDA aproximado via totalDebtToEquityAnnual × equity/EBITDA
+  // O más simple: longTermDebt/equityAnnual como proxy de apalancamiento
+  const debtToEq = safe(d.metrics?.totalDebtToEquityAnnual) ?? safe(d.metrics?.longTermDebtToEquityAnnual);
+  if (debtToEq !== null) {
+    // D/E < 0.5 → muy poco apalancada → PASS; D/E 0.5-2 → NEUTRAL; >2 → FAIL
+    // No es Deuda/EBITDA exacto pero es el mejor proxy sin Balance Sheet
+    if (debtToEq <= 0) return { score:1, val:'Caja neta (D/E)', label:'Deuda Neta/EBITDA' };
+    const score = debtToEq<50?1:debtToEq<=200?0.5:0;  // D/E en % (Finnhub lo da como %)
+    return { score, val:`D/E ${fmt(debtToEq,0)}%`, label:'Deuda Neta/EBITDA' };
+  }
+  // Claude AI fallback
+  if (d._claude?.deudaEbitda !== undefined && d._claude.deudaEbitda !== null) {
+    const r2 = d._claude.deudaEbitda;
+    if (!isNaN(r2)) {
+      if (r2<=0) return { score:1, val:'Caja neta (IA)', label:'Deuda Neta/EBITDA' };
+      const score = r2<1.5?1:r2<=3?0.5:0;
+      return { score, val:fmtX(r2)+' (IA)', label:'Deuda Neta/EBITDA' };
+    }
+  }
+  return { score:0.5, val:'N/D', label:'Deuda Neta/EBITDA' };
+}
+
+// C11 — Momento Técnico (RSI proxy 52W + precio vs MA200)
+// FMP profile: cambio % precio / Finnhub métricas
+function c11(d) {
+  const m = d.metrics;
+  const price = safe(d.quote?.c);
+
+  // RSI: proxy desde rango 52W (Finnhub /indicator da 403 en plan free)
+  let rsi = null;
+  if (d.rsiData && Array.isArray(d.rsiData.rsi) && d.rsiData.rsi.length>0) {
+    const last = d.rsiData.rsi[d.rsiData.rsi.length-1];
+    if (last>=0 && last<=100) rsi = last;
+  }
+  if (rsi===null) {
+    const high52 = safe(m?.['52WeekHigh']);
+    const low52  = safe(m?.['52WeekLow']);
+    if (price && high52 && low52 && high52>low52) {
+      rsi = ((price-low52)/(high52-low52))*100;
+    }
+  }
+
+  // MA200: FMP key-metrics no lo tiene directo, usamos Finnhub metric
+  let ma200 = safe(m?.['200DayAveragePriceAdjusted']) ?? safe(m?.['200DayAveragePrice']);
+  if (!ma200 && d.ma200?.sma?.length>0) {
+    const last = d.ma200.sma[d.ma200.sma.length-1];
+    if (last>0) ma200 = last;
+  }
+
+  if (rsi===null && ma200===null) return { score:0.5, val:'N/D', label:'Momento Técnico' };
+
+  const rsiOk = rsi!==null ? (rsi>=40 && rsi<=65) : null;
+  const maOk  = (price && ma200) ? price>ma200 : null;
+
+  let score;
+  if      (rsiOk===true  && maOk===true)  score = 1;
+  else if (rsiOk===true  && maOk===null)  score = 1;
+  else if (rsiOk===null  && maOk===true)  score = 1;
+  else if (rsiOk===true  || maOk===true)  score = 0.5;
+  else if (rsiOk===false && maOk===false) score = 0;
+  else                                     score = 0.5;
+
+  const rsiStr = rsi!==null ? `RSI ~${fmt(rsi,0)}` : 'RSI N/D';
+  const maStr  = maOk===null ? 'MA200 N/D' : maOk ? `sobre MA200 ✓` : `bajo MA200 ✗`;
+  return { score, val:`${rsiStr} | ${maStr}`, label:'Momento Técnico' };
+}
+
+// C12 — Recompras + Insiders
+// FMP key-metrics-ttm: buybackYieldTTM (decimal) + Finnhub insiders
+function c12(d) {
+  const insiders = d.insiders;
+
+  // FMP buybackYieldTTM: positivo = recompras activas (ej: 0.025 = 2.5%)
+  const buybackYield = safe(d.fkm?.buybackYieldTTM);  // FMP decimal ✓
+  const shareChgFH = safe(d.metrics?.shareChangeAnnual);
+  const recomprasActivas = (buybackYield!==null && buybackYield > 0.005)
+                        || (shareChgFH!==null && shareChgFH < -0.5);
+
+  // Insiders Finnhub
+  let insiderBuys=0, insiderSells=0;
+  if (insiders && insiders.length>0) {
+    insiders.slice(0,30).forEach(t => {
+      const tp = (t.transactionType||'').toUpperCase();
+      if (tp==='P'||tp==='BUY') insiderBuys++;
+      else if (tp==='S'||tp==='SELL') insiderSells++;
+    });
+  }
+  const insiderPositive = insiderBuys>0 && insiderBuys>=insiderSells;
+  const insiderNegative = insiderSells>0 && insiderSells>insiderBuys*2;
+
+  let score, val;
+  if (recomprasActivas && insiderPositive) {
+    score=1; val='Recompras activas + insiders comprando';
+  } else if (recomprasActivas) {
+    const pctStr = buybackYield!==null ? ` (${pct(buybackYield)}/año)` : '';
+    score=0.5; val=`Recompras activas${pctStr}`;
+  } else if (insiderPositive) {
+    score=0.5; val=`Insiders: ${insiderBuys}C vs ${insiderSells}V`;
+  } else if (insiderNegative) {
+    score=0; val=`Insiders: ${insiderBuys}C vs ${insiderSells}V (ventas dom.)`;
+  } else if (!insiders?.length && buybackYield===null && shareChgFH===null) {
+    score=0.5; val='N/D';
+  } else {
+    score=0; val='Sin recompras activas';
+  }
+  return { score, val, label:'Recompras + Insiders' };
+}
+
+// ═══════════════════════════════════════════
+// ANÁLISIS
+// ═══════════════════════════════════════════
+function runFilter(d) {
+  const sector = detectSector(d.profile);
+  const criteria = [
+    c1(d,sector), c2(d), c3(d), c4(d),
+    c5(d), c6(d), c7(d,sector), c8(d),
+    c9(d), c10(d), c11(d), c12(d)
+  ];
+  const total = criteria.reduce((s,c)=>s+c.score,0);
+  let verdict, verdictClass;
+  if (total>=8){ verdict='COMPRA'; verdictClass='buy'; }
+  else if (total>=6){ verdict='VIGILAR'; verdictClass='watch'; }
+  else { verdict='DESCARTAR'; verdictClass='discard'; }
+  return { criteria, total, verdict, verdictClass, sector };
+}
+
+// ═══════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════
+function scoreClass(s){ return s===1?'pass':s===0.5?'neutral':'fail'; }
+function scoreLabel(s){ return s===1?'1.0':s===0.5?'0.5':'0'; }
+
+function renderRing(total) {
+  const r=28,cx=36,cy=36;
+  const circ=2*Math.PI*r;
+  const fill=(total/12)*circ;
+  const color=total>=8?'var(--green)':total>=6?'var(--yellow)':'var(--red)';
+  return `<svg viewBox="0 0 72 72">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--border2)" stroke-width="6"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="6"
+      stroke-dasharray="${fill} ${circ}" stroke-dashoffset="${circ/4}"
+      stroke-linecap="round" transform="rotate(-90 ${cx} ${cy})" style="transition:stroke-dasharray .6s ease"/>
+    <text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central"
+      style="fill:${color};font-size:14px;font-weight:700;font-family:'JetBrains Mono',monospace">${total.toFixed(1)}</text>
+  </svg>`;
+}
+
+const LAYERS = [
+  { id:'l1', label:'Capa 1', title:'Valoración', idxs:[0,1,2,3] },
+  { id:'l2', label:'Capa 2', title:'Calidad & Timing', idxs:[4,5,6,7] },
+  { id:'l3', label:'Capa 3', title:'Técnico & Deuda', idxs:[8,9,10] },
+  { id:'l4', label:'Capa 4', title:'Capital & Directivos', idxs:[11] },
+];
+
+function renderResult(ticker, d, result) {
+  const p = d.profile;
+  const q = d.quote;
+  const { criteria, total, verdict, verdictClass, sector } = result;
+  const price = safe(q?.c);
+  const prevClose = safe(q?.pc);
+  const change = (price!==null && prevClose!==null && prevClose!==0) ? ((price-prevClose)/prevClose)*100 : null;
+  const changeClass = change!==null && change>=0 ? 'up':'down';
+  const changeStr = change!==null ? (change>=0?'+':'')+change.toFixed(2)+'%' : 'N/D';
+  const name = safe(p?.name, ticker.toUpperCase());
+  const logoUrl = safe(p?.logo,'');
+  const m = d.metrics;
+  const high52 = safe(m?.['52WeekHigh']);
+  const low52 = safe(m?.['52WeekLow']);
+  const sectorLabel = { tech:'Tecnología', healthcare:'Salud', financial:'Financiero', industrial:'Industrial', luxury:'Lujo', default:'Diversificado' };
+
+  const layersHtml = LAYERS.map(layer=>`
+    <div class="layer">
+      <div class="layer-header">
+        <span class="layer-badge ${layer.id}">${layer.label}</span>
+        <span class="layer-title">${layer.title}</span>
+      </div>
+      <div class="criteria-list">
+        ${layer.idxs.map(i=>`
+          <div class="criterion-row ${scoreClass(criteria[i].score)}">
+            <span class="criterion-num">C${i+1}</span>
+            <span class="criterion-name">${criteria[i].label}</span>
+            <span class="criterion-val">${criteria[i].val}</span>
+            <span class="criterion-score">${scoreLabel(criteria[i].score)}</span>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  const verdictDesc = verdict==='COMPRA'?'≥ 8.0 / 12 · Pasa el filtro':verdict==='VIGILAR'?'6.0 – 7.9 / 12 · Seguimiento activo':'< 6.0 / 12 · No cumple criterios';
+
+  return `
+  <div class="section">
+    <div class="card">
+      <div class="company-header">
+        <div class="company-logo">
+          ${logoUrl?`<img src="${logoUrl}" onerror="this.style.display='none'">`:ticker.toUpperCase()[0]}
+        </div>
+        <div class="company-info">
+          <div class="company-name">${name}</div>
+          <div class="company-meta">
+            <span class="company-ticker">${ticker.toUpperCase()}</span>
+            <span class="sector-badge ${sector}">${sectorLabel[sector]||'Sector'}</span>
+          </div>
+        </div>
+      </div>
+      <div class="notes-grid">
+        <div class="note-item">
+          <div class="note-label">Precio</div>
+          <div class="note-val">$${price!==null?price.toFixed(2):'N/D'}</div>
+        </div>
+        <div class="note-item">
+          <div class="note-label">Variación</div>
+          <div class="note-val ${changeClass}">${changeStr}</div>
+        </div>
+        <div class="note-item">
+          <div class="note-label">Máx. 52s</div>
+          <div class="note-val">$${high52!==null?fmt(high52,1):'N/D'}</div>
+        </div>
+        <div class="note-item">
+          <div class="note-label">Mín. 52s</div>
+          <div class="note-val">$${low52!==null?fmt(low52,1):'N/D'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="verdict-block ${verdictClass}">
+      <div class="verdict-text">
+        <div class="verdict-label">${verdict}</div>
+        <div class="verdict-desc">${verdictDesc}</div>
+      </div>
+      <div class="score-ring">${renderRing(total)}</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Desglose 12 Criterios</div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>PASS = 1.0</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--yellow)"></div>NEUTRAL / N/D = 0.5</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>FAIL = 0</div>
+      </div>
+      ${layersHtml}
+    </div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+// MAIN
+// ═══════════════════════════════════════════
+function setTicker(t) {
+  document.getElementById('tickerInput').value=t;
+  document.getElementById('tickerInput').focus();
+}
+
+const CLAUDE_PROXY = 'https://8wfinanzas-claude-proxy.wagner-zambrano-r.workers.dev';
+
+async function fetchClaude(ticker, d, claudeKey) {
+  if (!claudeKey) return null;
+  try {
+    const metrics = {
+      marketCap: d.profile?.marketCapitalization,
+      peRatio: d.quote?.pe,
+      revenueGrowth: d.av?.RevenueGrowthYOY,
+      operatingMargin: d.av?.OperatingMarginTTM,
+      ebitda: d.av?.EBITDA,
+      ocf: d.av?.OperatingCashflowTTM,
+      capex: d.av?.CapitalExpenditureTTM,
+      debtToEquity: d.metrics?.totalDebtToEquityAnnual,
+      evEbitdaFMP: d.metrics?.evToEbitdaTTM,
+    };
+    const r = await fetch(CLAUDE_PROXY, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticker, metrics, claudeKey }),
+    });
+    if (!r.ok) return null;
+    const data = await r.json();
+    console.log('[Wfinanzas] Claude AI data:', data);
+    return data;
+  } catch(e) {
+    console.warn('[Wfinanzas] Claude proxy error:', e);
+    return null;
+  }
+}
+
+async function analyze() {
+  const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+  const apiKey = document.getElementById('apiKeyInput').value.trim();
+  const fmpKey = document.getElementById('fmpKeyInput').value.trim();
+  const avKey  = document.getElementById('avKeyInput').value.trim();
+  const claudeKey = document.getElementById('claudeKeyInput').value.trim();
+  const area = document.getElementById('resultArea');
+  const btn = document.getElementById('btnAnalyze');
+
+  if (!ticker) { document.getElementById('tickerInput').focus(); return; }
+  if (!apiKey) {
+    area.innerHTML=`<div class="error-block" style="margin:0 20px"><b>⚠️ API Key requerida</b><br>Introduce tu clave de Finnhub.</div>`;
+    return;
+  }
+
+  btn.disabled=true;
+  area.innerHTML=`<div class="state-block"><div class="spinner"></div><div class="state-title">Analizando ${ticker}…</div><div class="state-desc">Obteniendo datos de Finnhub + FMP…</div></div>`;
+
+  try {
+    const d = await fetchAll(ticker, apiKey, fmpKey, avKey);
+    if (!d.quote || d.quote.c===0) throw new Error(`No se encontraron datos para "${ticker}". Verifica el ticker y la API key.`);
+
+    // Si hay Claude key, enriquecer con IA los criterios que faltan
+    if (claudeKey) {
+      area.innerHTML=`<div class="state-block"><div class="spinner"></div><div class="state-title">Analizando ${ticker}…</div><div class="state-desc">🤖 Consultando IA para criterios faltantes…</div></div>`;
+      const aiData = await fetchClaude(ticker, d, claudeKey);
+      if (aiData) {
+        d._claude = aiData; // guardar para uso en c7/c10/c8
+      }
+    }
+
+    const result = runFilter(d);
+    area.innerHTML = renderResult(ticker, d, result);
+  } catch(e) {
+    area.innerHTML=`<div class="error-block"><b>❌ Error al obtener datos</b><br><span style="color:var(--text2)">${e.message}</span></div>`;
+  } finally {
+    btn.disabled=false;
+  }
+}
+
+document.getElementById('tickerInput').addEventListener('keydown', e => { if(e.key==='Enter') analyze(); });
+
+// Guardar keys en localStorage
+try {
+  const savedFH = localStorage.getItem('fh_key');
+  if (savedFH) document.getElementById('apiKeyInput').value = savedFH;
+  document.getElementById('apiKeyInput').addEventListener('change', e => {
+    if (e.target.value) localStorage.setItem('fh_key', e.target.value);
+  });
+  const savedFMP = localStorage.getItem('fmp_key');
+  if (savedFMP) document.getElementById('fmpKeyInput').value = savedFMP;
+  document.getElementById('fmpKeyInput').addEventListener('change', e => {
+    if (e.target.value) localStorage.setItem('fmp_key', e.target.value);
+  });
+  const savedAV = localStorage.getItem('av_key');
+  if (savedAV) document.getElementById('avKeyInput').value = savedAV;
+  document.getElementById('avKeyInput').addEventListener('change', e => {
+    if (e.target.value) localStorage.setItem('av_key', e.target.value);
+  });
+  const savedClaude = localStorage.getItem('claude_key');
+  if (savedClaude) document.getElementById('claudeKeyInput').value = savedClaude;
+  document.getElementById('claudeKeyInput').addEventListener('change', e => {
+    if (e.target.value) localStorage.setItem('claude_key', e.target.value);
+  });
+} catch(e){}
+
+// Desregistrar service worker anterior para forzar código fresco
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+}
+</script>
+</body>
+</html>
